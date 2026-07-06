@@ -1,8 +1,6 @@
-package models.lombok;
+package models.examples.lombok;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
 //@AllArgsConstructor // аннотация для работы с конструктором

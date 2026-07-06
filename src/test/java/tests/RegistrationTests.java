@@ -1,223 +1,156 @@
 package tests;
 
-import models.lombok.RegistrationBodyLombokModel;
-import models.lombok.RegistrationResponseLombokModel;
-import models.pojo.RegistrationBodyPojoModel;
-import models.pojo.RegistrationResponsePojoModel;
-import models.records.ExistingUser400ResponseRecordsModel;
-import models.records.RegistrationBodyRecordsModel;
-import models.records.RegistrationResponseRecordsModel;
-import net.datafaker.Faker;
-import org.junit.jupiter.api.BeforeEach;
+import models.registration.*;
+import models.examples.records.ExistingUserResponseRecordsModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.openqa.selenium.json.Json;
-
 import static io.restassured.RestAssured.*;
-import static io.restassured.http.ContentType.JSON;
-import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static specs.registration.RegistrationSpec.*;
+import static tests.TestData.*;
 
-public class RegistrationTests {
-    String username;
-    String password;
+public class RegistrationTests extends TestBase {
+    TestData td = new TestData();
 
-    @BeforeEach
-    public void prepareTestData(){
-        Faker faker = new Faker();
-        username = faker.name().firstName();
-        password = faker.name().firstName();
-    }
-
-    @Test
-    public void successfulRegistrationTest_with_pojo() {
-
-         RegistrationBodyPojoModel data = new RegistrationBodyPojoModel();
-         data.setUsername(username);
-         data.setPassword(password);
-
-         //RegistrationBodyPojoModel data = new RegistrationBodyPojoModel(username, password);
-        // до 4-х значений
-
-        RegistrationResponsePojoModel registrationResponse = given()
-                .log().all()
-            .contentType(JSON)
-            .body(data)
-                .when()
-                .post("https://book-club.qa.guru/api/v1/users/register/")
-                .then()
-                .log().all()
-                .statusCode(201)
-                .extract()
-                .as(RegistrationResponsePojoModel.class);
-
-        assertEquals(username, registrationResponse.getUsername());
-
-    }
-
-    @Test
-    public void successfulRegistrationTest_with_lombok() {
-
-        RegistrationBodyLombokModel data = new RegistrationBodyLombokModel();
-        data.setUsername(username);
-        data.setPassword(password);
-
-        //RegistrationBodyLombokModel data = new RegistrationBodyLombokModel(username, password);
-        // до 4-х значений работа с конструктором
-
-        RegistrationResponseLombokModel registrationResponse = given()
-                .log().all()
-                .contentType(JSON)
-                .body(data)
-                .when()
-                .post("https://book-club.qa.guru/api/v1/users/register/")
-                .then()
-                .log().all()
-                .statusCode(201)
-                .extract()
-                .as(RegistrationResponseLombokModel.class);
-
-        assertEquals(username, registrationResponse.getUsername());
-
-    }
-
+    @DisplayName("Успешная регистрация пользователя")
     @Test
     public void successfulRegistrationTest_with_records() {
 
-        RegistrationBodyRecordsModel data = new RegistrationBodyRecordsModel(username, password);
+        RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
 
-        RegistrationResponseRecordsModel registrationResponse = given()
-                .log().all()
-                .contentType(JSON)
-                .body(data)
+        SuccessfulRegistrationResponseModel registrationResponse = given(registrationRequestSpec)
+                .body(registrationData)
                 .when()
-                .post("https://book-club.qa.guru/api/v1/users/register/")
+                .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(201)
+                .spec(successfulRegistrationResponseSpec)
                 .extract()
-                .as(RegistrationResponseRecordsModel.class);
+                .as(SuccessfulRegistrationResponseModel.class);
 
-        assertEquals(username, registrationResponse.username());
+        String actualUsername = registrationResponse.username();
 
+        assertThat(actualUsername).isEqualTo(td.username);
+        assertThat(registrationResponse.firstName()).isEqualTo("");
+        assertThat(registrationResponse.lastName()).isEqualTo("");
+        assertThat(registrationResponse.email()).isEqualTo("");
+        assertThat(registrationResponse.id()).isGreaterThan(0);
     }
 
+    @DisplayName("Регистрация уже существующего пользователя: негативный тест")
     @Test
-    public void existingUser400Test() {
+    public void existingUserWrongRegistrationTest() {
 
-        RegistrationBodyRecordsModel data = new RegistrationBodyRecordsModel(username, password);
+        RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
 
-        given()
-                .log().all()
-                .contentType(JSON)
-                .body(data)
+        SuccessfulRegistrationResponseModel firstRegistrationResponse = given(registrationRequestSpec)
+                .body(registrationData)
                 .when()
-                .post("https://book-club.qa.guru/api/v1/users/register/")
+                .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(201)
-                .body("username", is(username))
-                .body("id", notNullValue());
-
-        ExistingUser400ResponseRecordsModel response = given()
-                .log().all()
-                .contentType(JSON)
-                .body(data)
-                .when()
-                .post("https://book-club.qa.guru/api/v1/users/register/")
-                .then()
-                .log().all()
-                .statusCode(400)
+                .spec(successfulRegistrationResponseSpec)
                 .extract()
-                .as(ExistingUser400ResponseRecordsModel.class);
+                .as(SuccessfulRegistrationResponseModel.class);
 
-        String expectedError = "A user with that username already exists.";
+        String actualUsername = firstRegistrationResponse.username();
+        assertThat(actualUsername).isEqualTo(td.username);
 
-        assertEquals(expectedError, response.username().get(0));
 
-
-    }
-
-    @Test
-    public void negativeRegistrationTest() {
-
-        String data = "{\"username\": \"" + username + "\", \"password\": \"" + password + "\"}";
-
-        given()
-                .log().all()
-                .auth().basic("user1", "1234")
+        ExistingUserResponseRecordsModel secondRegistrationResponse = given(registrationRequestSpec)
+                .body(registrationData)
                 .when()
-                .post("http://bookclub.qa.guru:8000/api/v1/users/register")
+                .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(201)
-                .body("username", is(username))
-                .body("id", notNullValue());
+                .spec(wrongExistingUserRegistrationResponseSpec)
+                .extract()
+                .as(ExistingUserResponseRecordsModel.class);
+
+        String actualError = secondRegistrationResponse.username().get(0);
+        assertThat(actualError).isEqualTo(EXPECTED_ERROR_EXISTING_USER);
     }
 
-    @Test
-    public void statusSchemaTest() {
-        given()
-                .log().all()
-                .when()
-                .get("https://selenoid.autotests.cloud/status")
-                .then()
-                .log().all()
-                .statusCode(200)
-                .body(matchesJsonSchemaInClasspath("sсhemas/status_response_schema.json"));
+        @DisplayName("Регистрация пользователя с пустым логином: негативный тест")
+        @Test
+        public void emptyUsernameRegistrationTest () {
+
+            RegistrationBodyModel registrationData = new RegistrationBodyModel("", td.password);
+
+            EmptyUsernameResponseModel emptyUsernameResponseModel = given(registrationRequestSpec)
+                    .body(registrationData)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .spec(emptyUsernameRegistrationResponseSpec)
+                    .extract()
+                    .as(EmptyUsernameResponseModel.class);
+
+            String actualError = emptyUsernameResponseModel.username().get(0);
+            assertThat(actualError).isEqualTo(EXPECTED_ERROR_NOT_BE_BLANK);
+        }
+
+        @DisplayName("Регистрация пользователя с пустым паролем: негативный тест")
+        @Test
+        public void emptyPasswordRegistrationTest () {
+            RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, "");
+
+            EmptyPasswordResponseModel emptyPasswordResponseModel = given(registrationRequestSpec)
+                    .body(registrationData)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .spec(emptyPasswordRegistrationResponseSpec)
+                    .extract()
+                    .as(EmptyPasswordResponseModel.class);
+
+            String actualError = emptyPasswordResponseModel.password().get(0);
+            assertThat(actualError).isEqualTo(EXPECTED_ERROR_NOT_BE_BLANK);
+        }
+
+        @DisplayName("Регистрация пользователя с некорректным логином (с пробелами): негативный тест")
+        @Test
+        public void wrongUsernameRegistrationTest () {
+            RegistrationBodyModel registrationData = new RegistrationBodyModel(td.wrongUsername, td.password);
+
+            WrongUsernameResponseModel wrongUsernameResponseModel = given(registrationRequestSpec)
+                    .body(registrationData)
+                    .when()
+                    .post("/users/register/")
+                    .then()
+                    .spec(wrongUsernameRegistrationResponseSpec)
+                    .extract()
+                    .as(WrongUsernameResponseModel.class);
+
+            String actualError = wrongUsernameResponseModel.username().get(0);
+            assertThat(actualError).isEqualTo(EXPECTED_ERROR_INVALID_USERNAME_CHARACTERS);
+        }
+
+         @DisplayName("Регистрация с неверным Content-Type: негативный тест")
+         @Test
+         public void unsupportedMediaTypeRegistrationTest() {
+             RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
+
+             UnsupportedMediaTypeRegistrationBodyModel unsupportedMediaTypeResponseModel =
+                given(unsupportedMediaTypeRegistrationRequestSpec)
+                        .body(registrationData)
+                        .when()
+                        .post("/users/register/")
+                        .then()
+                        .spec(unsupportedMediaTypeRegistrationResponseSpec)
+                        .extract()
+                        .as(UnsupportedMediaTypeRegistrationBodyModel.class);
+
+        String actualError = unsupportedMediaTypeResponseModel.detail();
+        assertThat(actualError).isEqualTo(EXPECTED_ERROR_UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    }
 
 
-    }
-    @Test
-    public void bestTotalAmountTest() {
-        given()
-                .log().all()
-                .when()
-                .get("https://selenoid.autotests.cloud/status")
-                .then()
-                .log().all()
-                .statusCode(200)
-                .body(matchesJsonSchemaInClasspath("sсhemas/status_response_schema.json"))
-                .body("total", is(5));
-    }
-    @Test
-    @DisplayName("Проверка, что value содержит ключи message,ready")
-    public void valueObjectContainsMessageAndReady() {
-        given()
-                .log().all()
-                .auth().basic("user1", "1234")
-                .when()
-                .get("/wd/hub/status")
-                .then()
-                .log().all()
-                .body("value", hasKey("message"))
-                .body("value", hasKey("ready"));
-    }
-    @Test
-    @DisplayName("Проверка, что значение параметра ready = true")
-    public void readyContentTrueTest() {
-        given()
-                .log().all()
-                .auth().basic("user1", "1234")
-                .when()
-                .get("/wd/hub/status")
-                .then()
-                .log().body()
-                .statusCode(200)
-                .body("value.ready", is(true));
-    }
 
-    @Test
-    @DisplayName("Проверка значения ключа message")
-    public void messageContentRightTest() {
-        given()
-                .log().all()
-                .auth().basic("user1", "1234")
-                .when()
-                .get("/wd/hub/status")
-                .then()
-                .log().all()
-                .body("value.message", is("Selenoid 1.11.3 built at 2024-05-25_12:34:40PM"));
-    }
-}
+
+
+
+
+
+
+
+

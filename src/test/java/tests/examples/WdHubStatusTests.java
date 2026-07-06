@@ -1,14 +1,16 @@
-package tests;
+package tests.examples;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tests.TestBase;
+
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
-public class WdHubStatusTests extends TestBase{
+public class WdHubStatusTests extends TestBase {
 
     @Test
     @DisplayName("Корректная авторизация: статус-код 200")
@@ -76,7 +78,7 @@ public void unauthorizedShouldReturn401() {
                 .get("/status")
                 .then()
                 .log().all()
-                .body(matchesJsonSchemaInClasspath("sсhemas/status_response_schema.json"));
+                .body(matchesJsonSchemaInClasspath("schemas1/login/successful_login_response_schema.json"));
     }
     @Test
     @DisplayName("Проверка содержимого: value - ключи, типы и значения")
