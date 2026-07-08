@@ -2,12 +2,12 @@ package tests;
 
 
 import models.login.LoginBodyRecordsModel;
-import models.login.SuccessfulLoginResponseRecordsModel;
 import models.logout.EmptyRefreshTokenLogoutBodyModel;
 import models.logout.EmptyRefreshTokenLogoutResponseModel;
 import models.logout.LogoutBodyModel;
 import models.logout.ReusedRefreshTokenLogoutResponseModel;
 import models.registration.RegistrationBodyModel;
+import static io.qameta.allure.Allure.step;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
@@ -27,7 +27,7 @@ public class LogoutTests extends TestBase {
     @DisplayName("Успешный logout по валидному refresh-токену")
     @Test
     public void successfulLogoutTest() {
-
+        step("Зарегистрировать пользователя", () -> {
         RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
         given(registrationRequestSpec)
                 .body(registrationData)
@@ -35,18 +35,18 @@ public class LogoutTests extends TestBase {
                 .post("/users/register/")
                 .then()
                 .spec(successfulRegistrationResponseSpec);
-
+        });
+        String refreshToken = step("Авторизоваться и получить refresh token", () -> {
         LoginBodyRecordsModel data = new LoginBodyRecordsModel(td.username, td.password);
-        SuccessfulLoginResponseRecordsModel responseLogin = given(loginRequestSpec)
+            return given(loginRequestSpec)
                 .body(data)
                 .when()
                 .post("/auth/token/")
                 .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().as(SuccessfulLoginResponseRecordsModel.class);
+                .spec(successfulLoginResponseSpec).extract().path("refresh");
+        });
 
-        String refreshToken = responseLogin.refresh();
-
+        step("Выполнить logout с refresh token", () -> {
         LogoutBodyModel logoutData = new LogoutBodyModel(refreshToken);
         given(logoutRequestSpec)
                 .body(logoutData)
@@ -54,11 +54,14 @@ public class LogoutTests extends TestBase {
                 .post("/auth/logout/")
                 .then()
                 .spec(successfulLogoutResponseSpec);
+        });
 
     }
+
     @DisplayName("Повторное использование refresh-токена при logout (401 Token is blacklisted): негативный тест")
     @Test
     public void logoutWithReusedTokenTest() {
+        step("Зарегистрировать пользователя", () -> {
         RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
         given(registrationRequestSpec)
                 .body(registrationData)
@@ -66,18 +69,20 @@ public class LogoutTests extends TestBase {
                 .post("/users/register/")
                 .then()
                 .spec(successfulRegistrationResponseSpec);
+        });
 
+        String refreshToken = step("Авторизоваться и получить refresh token", () -> {
         LoginBodyRecordsModel data = new LoginBodyRecordsModel(td.username, td.password);
-        SuccessfulLoginResponseRecordsModel responseLogin = given(loginRequestSpec)
+        return given(loginRequestSpec)
                 .body(data)
                 .when()
                 .post("/auth/token/")
                 .then()
                 .spec(successfulLoginResponseSpec)
-                .extract().as(SuccessfulLoginResponseRecordsModel.class);
+                .extract().path("refresh");
+        });
 
-        String refreshToken = responseLogin.refresh();
-
+        step("Выполнить logout с refresh token", () -> {
         LogoutBodyModel logoutFirstData = new LogoutBodyModel(refreshToken);
         given(logoutRequestSpec)
                 .body(logoutFirstData)
@@ -100,13 +105,14 @@ public class LogoutTests extends TestBase {
         String actualCodeReusedRefreshToken = logoutResponse.code();
         assertThat(actualDetailReusedRefreshToken).isEqualTo(EXPECTED_ERROR_TOKEN_IS_BLACKLISTED);
         assertThat(actualCodeReusedRefreshToken).isEqualTo(EXPECTED_TOKEN_NOT_VALID_CODE);
+        });
 
     }
 
     @DisplayName("Logout без refresh-токена (ошибка валидации): негативный тест ")
     @Test
     public void emptyRefreshTokenTest() {
-
+        step("logout без refresh token", () -> {
         EmptyRefreshTokenLogoutBodyModel logoutData = new EmptyRefreshTokenLogoutBodyModel();
         EmptyRefreshTokenLogoutResponseModel logoutResponse =
                 given(logoutRequestSpec)
@@ -120,11 +126,13 @@ public class LogoutTests extends TestBase {
 
         String actualErrorWithoutRefreshToken = logoutResponse.refresh().get(0);
         assertThat(actualErrorWithoutRefreshToken).isEqualTo(EXPECTED_REQUIRED_FIELD);
+        });
     }
 
     @DisplayName("Logout с access-токеном вместо refresh (401 Token has wrong type): негативный тест")
     @Test
     public void accessTokenInsteadOfRefreshTokenTest() {
+        step("Зарегистрировать пользователя", () -> {
         RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
         given(registrationRequestSpec)
                 .body(registrationData)
@@ -132,18 +140,19 @@ public class LogoutTests extends TestBase {
                 .post("/users/register/")
                 .then()
                 .spec(successfulRegistrationResponseSpec);
-
+        });
+        String accessToken = step("Авторизоваться и получить access token", () -> {
         LoginBodyRecordsModel data = new LoginBodyRecordsModel(td.username, td.password);
-        SuccessfulLoginResponseRecordsModel responseLogin = given(loginRequestSpec)
+            return given(loginRequestSpec)
                 .body(data)
                 .when()
                 .post("/auth/token/")
                 .then()
                 .spec(successfulLoginResponseSpec)
-                .extract().as(SuccessfulLoginResponseRecordsModel.class);
+                .extract().path("access");
+        });
 
-        String accessToken = responseLogin.access();
-
+        step("Проверить ошибку с access token вместо refresh token", () -> {
         LogoutBodyModel logoutData = new LogoutBodyModel(accessToken);
         ReusedRefreshTokenLogoutResponseModel logoutResponse =
                 given(logoutRequestSpec)
@@ -158,6 +167,7 @@ public class LogoutTests extends TestBase {
         String actualCodeReusedRefreshToken = logoutResponse.code();
         assertThat(actualDetailReusedRefreshToken).isEqualTo(EXPECTED_ERROR_WRONG_TOKEN_TYPE);
         assertThat(actualCodeReusedRefreshToken).isEqualTo(EXPECTED_TOKEN_NOT_VALID_CODE);
+        });
 
     }
 

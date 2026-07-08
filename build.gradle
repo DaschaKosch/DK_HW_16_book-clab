@@ -1,19 +1,25 @@
 plugins {
     id 'java'
-    id 'io.qameta.allure' version '2.11.2'  // или актуальная версия
+    id 'io.qameta.allure' version '2.12.0'  // или актуальная версия
     id 'io.freefair.lombok' version '9.5.0'
 }
+def restAssuredVersion = "6.0.0",
+    selenideVersion = "7.13.0",
+    allureVersion = "2.32.0",
+    junitVersion = "5.14.3",
+    slf4jVersion = "2.0.17"
+
 allure {
-    adapter {
-        aspectjWeaver.set(true)
+    report {
+        version.set(allureVersion)
+    }
+    adapter { // отвечает за появление папочки build/allure-results
+        aspectjWeaver.set(true) //обработка аннотации @Step
         frameworks {
-            junit5 {
-                adapterVersion.set("2.23.0")
+            junit5 { //название фреймворка
+                adapterVersion.set(allureVersion) //версия интеграции фреймворка и Allure
             }
         }
-    }
-    report {
-        version.set("2.23.0")
     }
 }
 repositories {
@@ -42,6 +48,7 @@ dependencies {
     testImplementation 'io.qameta.allure:allure-selenide:2.23.0'
     testImplementation 'io.qameta.allure:allure-junit5:2.23.0'
     testImplementation 'org.aspectj:aspectjweaver:1.9.21'
+    testImplementation 'io.qameta.allure:allure-rest-assured:2.32.0'
 }
 
 test {

@@ -4,6 +4,7 @@ import models.login.*;
 import models.registration.RegistrationBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static specs.login.LoginSpec.*;
@@ -19,6 +20,7 @@ public class LoginTests extends TestBase {
     @Test
     public void successfulLoginTest() {
 
+        step("Зарегистрировать пользователя", () -> {
         RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
 
                  given(registrationRequestSpec)
@@ -27,7 +29,9 @@ public class LoginTests extends TestBase {
                 .post("/users/register/")
                 .then()
                 .spec(successfulRegistrationResponseSpec);
+        });
 
+        step("Авторизоваться и проверить access и refresh token", () -> {
          LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username,td.password);
 
         SuccessfulLoginResponseRecordsModel loginResponse = given(loginRequestSpec)
@@ -47,6 +51,7 @@ public class LoginTests extends TestBase {
                 assertThat(actualAccess).startsWith(expectedTokenPath);
                 assertThat(actualRefresh).startsWith(expectedTokenPath);
                 assertThat(actualAccess).isNotEqualTo(actualRefresh);
+        });
 
     }
 
@@ -54,6 +59,7 @@ public class LoginTests extends TestBase {
     @Test
     public void wrongCredentialsLoginTest() {
 
+        step("Проверить ошибку при авторизации с неверным password", () -> {
         LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username,td.wrongPassword);
 
         WrongCredentialsLoginResponseRecordsModel loginResponse = given(loginRequestSpec)
@@ -67,12 +73,14 @@ public class LoginTests extends TestBase {
 
         String actualDetailError = loginResponse.detail();
         assertThat(actualDetailError).isEqualTo(EXPECTED_ERROR_INVALID_USERNAME_OR_PASSWORD);
+        });
 
     }
 
     @DisplayName("Обновление токена без поля refresh (400 Bad Request): негативный тест")
     @Test
     public void emptyRefreshTokenLoginTest() {
+        step("Проверить ошибку при обновлении токена без refresh token", () -> {
         EmptyRefreshTokenLoginBodyModel emptyRefreshToken = new EmptyRefreshTokenLoginBodyModel();
         EmptyRefreshTokenLoginResponseModel emptyRefreshTokenResponseModel = given(loginRequestSpec)
                 .body(emptyRefreshToken)
@@ -84,11 +92,13 @@ public class LoginTests extends TestBase {
 
         String actualRefresh = emptyRefreshTokenResponseModel.refresh().get(0);
         assertThat(actualRefresh).isEqualTo(EXPECTED_REQUIRED_FIELD);
+        });
     }
 
     @DisplayName("Обновление токена с невалидным refresh (401 Unauthorized): негативный тест")
     @Test
     public void wrongRefreshTokenLoginTest() {
+        step("Проверить ошибку при обновлении токена с невалидным refresh token", () -> {
         WrongRefreshTokenLoginBodyModel wrongRefreshTokenBodyModel = new WrongRefreshTokenLoginBodyModel(td.invalidToken);
         WrongRefreshTokenLoginResponseModel loginResponse = given(loginRequestSpec)
                 .body(wrongRefreshTokenBodyModel)
@@ -103,6 +113,7 @@ public class LoginTests extends TestBase {
 
         assertThat(actualDetailInvalidRefreshToken).isEqualTo(EXPECTED_ERROR_VALID_TOKEN);
         assertThat(actualCodeInvalidRefreshToken).isEqualTo(EXPECTED_TOKEN_NOT_VALID_CODE);
+        });
     }
 
 }
