@@ -31,26 +31,27 @@ public class LoginTests extends TestBase {
                 .spec(successfulRegistrationResponseSpec);
         });
 
-        step("Авторизоваться и проверить access и refresh token", () -> {
-         LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username,td.password);
+        SuccessfulLoginResponseRecordsModel loginResponse = step("Отправка POST-запроса на /auth/token/ и проверка HTTP-статуса 200", () -> {
+            LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username, td.password);
+            return given(loginRequestSpec)
+                    .body(loginData)
+                    .when()
+                    .post("/auth/token/")
+                    .then()
+                    .spec(successfulLoginResponseSpec)
+                    .extract().as(SuccessfulLoginResponseRecordsModel.class);
+        });
 
-        SuccessfulLoginResponseRecordsModel loginResponse = given(loginRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().as(SuccessfulLoginResponseRecordsModel.class);
+        step("Проверка бизнес-логики: валидация access и refresh токенов", () -> {
+            String expectedTokenPath = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+            String actualAccess = loginResponse.access();
+            String actualRefresh = loginResponse.refresh();
 
-                String expectedTokenPath = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
-                String actualAccess = loginResponse.access();
-                String actualRefresh = loginResponse.refresh();
-
-                assertThat(actualAccess).isNotEmpty();
-                assertThat(actualRefresh).isNotEmpty();
-                assertThat(actualAccess).startsWith(expectedTokenPath);
-                assertThat(actualRefresh).startsWith(expectedTokenPath);
-                assertThat(actualAccess).isNotEqualTo(actualRefresh);
+            assertThat(actualAccess).isNotEmpty();
+            assertThat(actualRefresh).isNotEmpty();
+            assertThat(actualAccess).startsWith(expectedTokenPath);
+            assertThat(actualRefresh).startsWith(expectedTokenPath);
+            assertThat(actualAccess).isNotEqualTo(actualRefresh);
         });
 
     }
@@ -59,20 +60,20 @@ public class LoginTests extends TestBase {
     @Test
     public void wrongCredentialsLoginTest() {
 
-        step("Проверить ошибку при авторизации с неверным password", () -> {
-        LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username,td.wrongPassword);
+        WrongCredentialsLoginResponseRecordsModel loginResponse = step("Отправка POST-запроса на /auth/token/ с неверным паролем и проверка HTTP-статуса 401", () -> {
+            LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username, td.wrongPassword);
+            return given(loginRequestSpec)
+                    .body(loginData)
+                    .when()
+                    .post("/auth/token/")
+                    .then()
+                    .spec(wrongCredentialResponseSpecification)
+                    .extract().as(WrongCredentialsLoginResponseRecordsModel.class);
+        });
 
-        WrongCredentialsLoginResponseRecordsModel loginResponse = given(loginRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(wrongCredentialResponseSpecification)
-                .extract().as(WrongCredentialsLoginResponseRecordsModel.class);
-
-
-        String actualDetailError = loginResponse.detail();
-        assertThat(actualDetailError).isEqualTo(EXPECTED_ERROR_INVALID_USERNAME_OR_PASSWORD);
+        // ШАГ 2: Проверка бизнес-логики (текст ошибки)
+        step("Проверка бизнес-логики: валидация ошибки неверных учетных данных", () -> {
+            assertThat(loginResponse.detail()).isEqualTo(EXPECTED_ERROR_INVALID_USERNAME_OR_PASSWORD);
         });
 
     }
@@ -80,40 +81,44 @@ public class LoginTests extends TestBase {
     @DisplayName("Обновление токена без поля refresh (400 Bad Request): негативный тест")
     @Test
     public void emptyRefreshTokenLoginTest() {
-        step("Проверить ошибку при обновлении токена без refresh token", () -> {
-        EmptyRefreshTokenLoginBodyModel emptyRefreshToken = new EmptyRefreshTokenLoginBodyModel();
-        EmptyRefreshTokenLoginResponseModel emptyRefreshTokenResponseModel = given(loginRequestSpec)
-                .body(emptyRefreshToken)
-                .when()
-                .post("/auth/token/refresh/")
-                .then()
-                .spec(emptyRefreshTokenResponseSpec)
-                .extract().as(EmptyRefreshTokenLoginResponseModel.class);
 
-        String actualRefresh = emptyRefreshTokenResponseModel.refresh().get(0);
-        assertThat(actualRefresh).isEqualTo(EXPECTED_REQUIRED_FIELD);
+        EmptyRefreshTokenLoginResponseModel emptyRefreshTokenResponseModel = step("Отправка POST-запроса на /auth/token/refresh/ без refresh-токена и проверка HTTP-статуса 400", () -> {
+            EmptyRefreshTokenLoginBodyModel emptyRefreshToken = new EmptyRefreshTokenLoginBodyModel();
+            return given(loginRequestSpec)
+                    .body(emptyRefreshToken)
+                    .when()
+                    .post("/auth/token/refresh/")
+                    .then()
+                    .spec(emptyRefreshTokenResponseSpec)
+                    .extract().as(EmptyRefreshTokenLoginResponseModel.class);
+        });
+
+        step("Проверка бизнес-логики: валидация ошибки отсутствия refresh-токена", () -> {
+            assertThat(emptyRefreshTokenResponseModel.refresh().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
         });
     }
 
     @DisplayName("Обновление токена с невалидным refresh (401 Unauthorized): негативный тест")
     @Test
     public void wrongRefreshTokenLoginTest() {
-        step("Проверить ошибку при обновлении токена с невалидным refresh token", () -> {
-        WrongRefreshTokenLoginBodyModel wrongRefreshTokenBodyModel = new WrongRefreshTokenLoginBodyModel(td.invalidToken);
-        WrongRefreshTokenLoginResponseModel loginResponse = given(loginRequestSpec)
-                .body(wrongRefreshTokenBodyModel)
-                .when()
-                .post("/auth/token/refresh/")
-                .then()
-                .spec(wrongRefreshTokenResponseSpec)
-                .extract().as(WrongRefreshTokenLoginResponseModel.class);
 
-        String actualDetailInvalidRefreshToken = loginResponse.detail();
-        String actualCodeInvalidRefreshToken = loginResponse.code();
-
-        assertThat(actualDetailInvalidRefreshToken).isEqualTo(EXPECTED_ERROR_VALID_TOKEN);
-        assertThat(actualCodeInvalidRefreshToken).isEqualTo(EXPECTED_TOKEN_NOT_VALID_CODE);
+        WrongRefreshTokenLoginResponseModel loginResponse = step("Отправка POST-запроса на /auth/token/refresh/ с невалидным токеном и проверка HTTP-статуса 401", () -> {
+            WrongRefreshTokenLoginBodyModel wrongRefreshTokenBodyModel = new WrongRefreshTokenLoginBodyModel(td.invalidToken);
+            return given(loginRequestSpec)
+                    .body(wrongRefreshTokenBodyModel)
+                    .when()
+                    .post("/auth/token/refresh/")
+                    .then()
+                    .spec(wrongRefreshTokenResponseSpec)
+                    .extract().as(WrongRefreshTokenLoginResponseModel.class);
         });
+
+
+        step("Проверка бизнес-логики: валидация ошибки невалидного refresh-токена", () -> {
+            assertThat(loginResponse.detail()).isEqualTo(EXPECTED_ERROR_VALID_TOKEN);
+            assertThat(loginResponse.code()).isEqualTo(EXPECTED_TOKEN_NOT_VALID_CODE);
+        });
+
     }
 
 }

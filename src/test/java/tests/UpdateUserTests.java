@@ -37,7 +37,7 @@ public class UpdateUserTests extends TestBase {
                     .extract().as(SuccessfulUpdateUserPutResponseModel.class);
         });
 
-        step("Проверка обновленных данных пользователя", () -> {
+        step("Проверка бизнес-логики: валидация обновленных данных пользователя", () -> {
             assertThat(responseUpdateUser.id()).isPositive();
             assertThat(responseUpdateUser.username()).isEqualTo(td.username);
             assertThat(responseUpdateUser.firstName()).isEqualTo(td.firstName);
@@ -66,6 +66,14 @@ public class UpdateUserTests extends TestBase {
                     .spec(successfulUpdateUserResponseSpec)
                     .extract().as(SuccessfulUpdateUserPatchResponseModel.class);
         });
+        step("Проверка бизнес-логики: валидация обновленных данных пользователя", () -> {
+            assertThat(responseUpdateUser.id()).isPositive();
+            assertThat(responseUpdateUser.username()).isEqualTo(td.username);
+            assertThat(responseUpdateUser.firstName()).isEqualTo(td.firstName);
+            assertThat(responseUpdateUser.lastName()).isEqualTo(td.lastName);
+            assertThat(responseUpdateUser.email()).isEqualTo(td.email);
+        });
+
     }
 
     @DisplayName("Успешное частичное обновление пользователя")
@@ -86,7 +94,7 @@ public class UpdateUserTests extends TestBase {
                     .extract().as(SuccessfulUpdateUserPatchResponseModel.class);
         });
 
-        step("Проверка частичного обновления данных", () -> {
+        step("Проверка бизнес-логики: валидация частичного обновления данных", () -> {
             assertThat(responseUpdateUser.id()).isPositive();
             assertThat(responseUpdateUser.username()).isEqualTo(td.username);
         });
@@ -110,7 +118,7 @@ public class UpdateUserTests extends TestBase {
                     .extract().as(InvalidPartialUpdateUserResponseBodyModel.class);
         });
 
-        step("Проверка текста ошибок валидации полей", () -> {
+        step("Проверка бизнес-логики: валидация текста ошибок валидации полей", () -> {
             assertThat(responseUpdateUser.firstName().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
             assertThat(responseUpdateUser.lastName().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
             assertThat(responseUpdateUser.email().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
@@ -118,9 +126,9 @@ public class UpdateUserTests extends TestBase {
         });
     }
 
-    // Вспомогательный метод с шагами внутри
+    // Вспомогательный метод
     private String registerAndLogin() {
-        step("Регистрация нового пользователя", () -> {
+        step("Отправка POST-запроса на /users/register/ и проверка HTTP-статуса", () -> {
             RegistrationBodyModel registrationData = new RegistrationBodyModel(td.username, td.password);
             given(registrationRequestSpec)
                     .body(registrationData)
@@ -130,7 +138,7 @@ public class UpdateUserTests extends TestBase {
                     .spec(successfulRegistrationResponseSpec);
         });
 
-        return step("Авторизация пользователя и получение access-токена", () -> {
+        return step("Отправка POST-запроса на /auth/token/ и проверка HTTP-статуса", () -> {
             LoginBodyRecordsModel loginData = new LoginBodyRecordsModel(td.username, td.password);
             return given(loginRequestSpec)
                     .body(loginData)
