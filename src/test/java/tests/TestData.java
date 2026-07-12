@@ -17,6 +17,17 @@ public class TestData {
             wrongPassword = password.substring(0, password.length() - 1),
             invalidToken = faker.lorem().characters(20);
 
+
+    public String
+            bookTitle = faker.name().firstName(),
+            bookAuthors = faker.name().fullName(),
+            description = faker.name().firstName(),
+            telegramChatLink = faker.internet().url(),
+            newBookTitle = faker.name().firstName(),
+            newBookAuthors = faker.name().fullName();
+
+    public int publicationYear = faker.number().numberBetween(1900, 2025);
+
     public static final String
             EXPECTED_ERROR_INVALID_USERNAME_OR_PASSWORD = "Invalid username or password.",
             EXPECTED_ERROR_EXISTING_USER = "A user with that username already exists.",
