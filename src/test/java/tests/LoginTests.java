@@ -1,6 +1,7 @@
 package tests;
 
 import models.login.*;
+import models.registration.RegistrationBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static io.qameta.allure.Allure.step;
@@ -15,14 +16,11 @@ public class LoginTests extends TestBase {
     @Test
     public void successfulLoginTest() {
 
-        step("Отправка POST-запроса на /users/register/ и проверка HTTP-статуса 201", () -> {
-            api.registration.registerUser(td.username, td.password);
-        });
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
 
-        SuccessfulLoginResponseRecordsModel response = step(
-                "Отправка POST-запроса на /auth/token/ и проверка HTTP-статуса 200",
-                () -> api.login.login(td.username, td.password)
-        );
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        SuccessfulLoginResponseRecordsModel response = api.login.login(loginBody);
 
         step("Проверка бизнес-логики: валидация access и refresh токенов", () -> {
             String expectedTokenPath = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
@@ -38,10 +36,8 @@ public class LoginTests extends TestBase {
     @Test
     public void wrongCredentialsLoginTest() {
 
-        WrongCredentialsLoginResponseRecordsModel response = step(
-                "Отправка POST-запроса на /auth/token/ с неверным паролем и проверка HTTP-статуса 401",
-                () -> api.login.loginWithWrongPassword(td.username, td.wrongPassword)
-        );
+        LoginBodyRecordsModel body = new LoginBodyRecordsModel(td.username, td.wrongPassword);
+        WrongCredentialsLoginResponseRecordsModel response = api.login.loginWithWrongPassword(body);
 
         step("Проверка бизнес-логики: валидация ошибки неверных учетных данных", () -> {
             assertThat(response.detail()).isEqualTo(EXPECTED_ERROR_INVALID_USERNAME_OR_PASSWORD);
@@ -52,10 +48,8 @@ public class LoginTests extends TestBase {
     @Test
     public void emptyRefreshTokenLoginTest() {
 
-        EmptyRefreshTokenLoginResponseModel response = step(
-                "Отправка POST-запроса на /auth/token/refresh/ без refresh-токена и проверка HTTP-статуса 400",
-                () -> api.login.refreshWithoutToken()
-        );
+        EmptyRefreshTokenLoginBodyModel body = new EmptyRefreshTokenLoginBodyModel();
+        EmptyRefreshTokenLoginResponseModel response = api.login.refreshWithoutToken(body);
 
         step("Проверка бизнес-логики: валидация ошибки отсутствия refresh-токена", () -> {
             assertThat(response.refresh().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
@@ -66,10 +60,8 @@ public class LoginTests extends TestBase {
     @Test
     public void wrongRefreshTokenLoginTest() {
 
-        WrongRefreshTokenLoginResponseModel response = step(
-                "Отправка POST-запроса на /auth/token/refresh/ с невалидным токеном и проверка HTTP-статуса 401",
-                () -> api.login.refreshWithInvalidToken(td.invalidToken)
-        );
+        WrongRefreshTokenLoginBodyModel body = new WrongRefreshTokenLoginBodyModel(td.invalidToken);
+        WrongRefreshTokenLoginResponseModel response = api.login.refreshWithInvalidToken(body);
 
         step("Проверка бизнес-логики: валидация ошибки невалидного refresh-токена", () -> {
             assertThat(response.detail()).isEqualTo(EXPECTED_ERROR_VALID_TOKEN);

@@ -1,8 +1,12 @@
 package tests;
 
+import models.login.LoginBodyRecordsModel;
+import models.logout.EmptyRefreshTokenLogoutBodyModel;
 import models.logout.EmptyRefreshTokenLogoutResponseModel;
+import models.logout.LogoutBodyModel;
 import models.logout.ReusedRefreshTokenLogoutResponseModel;
 import static io.qameta.allure.Allure.step;
+import models.registration.RegistrationBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,40 +21,30 @@ public class LogoutTests extends TestBase {
     @Test
     public void successfulLogoutTest() {
 
-        step("Отправка POST-запроса на /users/register/ и проверка HTTP-статуса 201", () -> {
-            api.registration.registerUser(td.username, td.password);
-        });
 
-        // Получение refresh-токена (с возвратом значения)
-        String refreshToken = step("Отправка POST-запроса на /auth/token/ и проверка HTTP-статуса 200",
-                () -> api.login.login(td.username, td.password).refresh()
-        );
-
-        step("Отправка POST-запроса на /auth/logout/ и проверка HTTP-статуса 200", () -> {
-            api.logout.logout(refreshToken);
-        });
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String refreshToken = api.login.login(loginBody).refresh();
+        LogoutBodyModel logoutBody = new LogoutBodyModel(refreshToken);
+        api.logout.logout(logoutBody);
     }
 
     @DisplayName("Повторное использование refresh-токена: негативный тест")
     @Test
     public void logoutWithReusedTokenTest() {
 
-        step("Отправка POST-запроса на /users/register/ и проверка HTTP-статуса 201", () -> {
-            api.registration.registerUser(td.username, td.password);
-        });
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
 
-        String refreshToken = step("Отправка POST-запроса на /auth/token/ и проверка HTTP-статуса 200",
-                () -> api.login.login(td.username, td.password).refresh()
-        );
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String refreshToken = api.login.login(loginBody).refresh();
 
-        step("Отправка POST-запроса на /auth/logout/ (первый) и проверка HTTP-статуса 200", () -> {
-            api.logout.logout(refreshToken);
-        });
+        LogoutBodyModel firstLogoutBody = new LogoutBodyModel(refreshToken);
+        api.logout.logout(firstLogoutBody);
 
-        ReusedRefreshTokenLogoutResponseModel response = step(
-                "Отправка POST-запроса на /auth/logout/ (повторно) и проверка HTTP-статуса 401",
-                () -> api.logout.logoutWithReusedToken(refreshToken)
-        );
+        LogoutBodyModel secondLogoutBody = new LogoutBodyModel(refreshToken);
+        ReusedRefreshTokenLogoutResponseModel response = api.logout.logoutWithReusedToken(secondLogoutBody);
 
         step("Проверка бизнес-логики: валидация ошибки повторного использования токена", () -> {
             assertThat(response.detail()).isEqualTo(EXPECTED_ERROR_TOKEN_IS_BLACKLISTED);
@@ -62,10 +56,8 @@ public class LogoutTests extends TestBase {
     @Test
     public void emptyRefreshTokenTest() {
 
-        EmptyRefreshTokenLogoutResponseModel response = step(
-                "Отправка POST-запроса на /auth/logout/ без токена и проверка HTTP-статуса 400",
-                () -> api.logout.logoutWithoutToken()
-        );
+        EmptyRefreshTokenLogoutBodyModel body = new EmptyRefreshTokenLogoutBodyModel();
+        EmptyRefreshTokenLogoutResponseModel response = api.logout.logoutWithoutToken(body);
 
         step("Проверка бизнес-логики: валидация ошибки отсутствия refresh-токена", () -> {
             assertThat(response.refresh().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
@@ -76,18 +68,15 @@ public class LogoutTests extends TestBase {
     @Test
     public void accessTokenInsteadOfRefreshTokenTest() {
 
-        step("Отправка POST-запроса на /users/register/ и проверка HTTP-статуса 201", () -> {
-            api.registration.registerUser(td.username, td.password);
-        });
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
 
-        String accessToken = step("Отправка POST-запроса на /auth/token/ и проверка HTTP-статуса 200",
-                () -> api.login.login(td.username, td.password).access()
-        );
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String accessToken = api.login.login(loginBody).access();
 
-        ReusedRefreshTokenLogoutResponseModel response = step(
-                "Отправка POST-запроса на /auth/logout/ с access-токеном и проверка HTTP-статуса 401",
-                () -> api.logout.logoutWithAccessToken(accessToken)
-        );
+        LogoutBodyModel body = new LogoutBodyModel(accessToken);
+
+        ReusedRefreshTokenLogoutResponseModel response = api.logout.logoutWithAccessToken(body);
 
         step("Проверка бизнес-логики: валидация ошибки неверного типа токена", () -> {
             assertThat(response.detail()).isEqualTo(EXPECTED_ERROR_WRONG_TOKEN_TYPE);

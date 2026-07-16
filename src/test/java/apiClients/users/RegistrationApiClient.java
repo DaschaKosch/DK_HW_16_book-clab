@@ -1,14 +1,14 @@
 package apiClients.users;
 
+import io.qameta.allure.Step;
 import models.registration.*;
 import static io.restassured.RestAssured.given;
 import static specs.registration.RegistrationSpec.*;
 
 public class RegistrationApiClient {
 
-    public SuccessfulRegistrationResponseModel registerUser(String username, String password) {
-        RegistrationBodyModel body = new RegistrationBodyModel(username, password);
-
+    @Step("Отправка POST-запроса на /users/register/ и проверка HTTP-статуса 201")
+    public SuccessfulRegistrationResponseModel registerUser(RegistrationBodyModel body) {
         return given(registrationRequestSpec)
                 .body(body)
                 .when()
@@ -19,10 +19,8 @@ public class RegistrationApiClient {
                 .as(SuccessfulRegistrationResponseModel.class);
     }
 
-
-    public ExistingUserResponseRecordsModel registerExistingUser(String username, String password) {
-        RegistrationBodyModel body = new RegistrationBodyModel(username, password);
-
+    @Step("Отправка POST-запроса на /users/register/ с существующим пользователем и проверка HTTP-статуса 400")
+    public ExistingUserResponseRecordsModel registerExistingUser(RegistrationBodyModel body) {
         return given(registrationRequestSpec)
                 .body(body)
                 .when()
@@ -33,10 +31,8 @@ public class RegistrationApiClient {
                 .as(ExistingUserResponseRecordsModel.class);
     }
 
-
-    public EmptyUsernameResponseModel registerWithEmptyUsername(String password) {
-        RegistrationBodyModel body = new RegistrationBodyModel("", password);
-
+    @Step("Отправка POST-запроса на /users/register/ с пустым логином и проверка HTTP-статуса 400")
+    public EmptyUsernameResponseModel registerWithEmptyUsername(RegistrationBodyModel body) {
         return given(registrationRequestSpec)
                 .body(body)
                 .when()
@@ -47,10 +43,8 @@ public class RegistrationApiClient {
                 .as(EmptyUsernameResponseModel.class);
     }
 
-
-    public EmptyPasswordResponseModel registerWithEmptyPassword(String username) {
-        RegistrationBodyModel body = new RegistrationBodyModel(username, "");
-
+    @Step("Отправка POST-запроса на /users/register/ с пустым паролем и проверка HTTP-статуса 400")
+    public EmptyPasswordResponseModel registerWithEmptyPassword(RegistrationBodyModel body) {
         return given(registrationRequestSpec)
                 .body(body)
                 .when()
@@ -61,10 +55,8 @@ public class RegistrationApiClient {
                 .as(EmptyPasswordResponseModel.class);
     }
 
-
-    public WrongUsernameResponseModel registerWithWrongUsername(String wrongUsername, String password) {
-        RegistrationBodyModel body = new RegistrationBodyModel(wrongUsername, password);
-
+    @Step("Отправка POST-запроса на /users/register/ с некорректным логином и проверка HTTP-статуса 400")
+    public WrongUsernameResponseModel registerWithWrongUsername(RegistrationBodyModel body) {
         return given(registrationRequestSpec)
                 .body(body)
                 .when()
@@ -75,9 +67,8 @@ public class RegistrationApiClient {
                 .as(WrongUsernameResponseModel.class);
     }
 
-    public UnsupportedMediaTypeRegistrationBodyModel registerWithUnsupportedMediaType(String username, String password) {
-        RegistrationBodyModel body = new RegistrationBodyModel(username, password);
-
+    @Step("Отправка POST-запроса на /users/register/ с неверным Content-Type и проверка HTTP-статуса 415")
+    public UnsupportedMediaTypeRegistrationBodyModel registerWithUnsupportedMediaType(RegistrationBodyModel body) {
         return given(unsupportedMediaTypeRegistrationRequestSpec)
                 .body(body)
                 .when()

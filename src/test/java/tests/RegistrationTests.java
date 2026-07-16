@@ -15,11 +15,8 @@ public class RegistrationTests extends TestBase {
         @Test
         public void successfulRegistrationTest() {
 
-
-            SuccessfulRegistrationResponseModel response = step(
-                    "Отправка POST-запроса на /users/register/ и проверка HTTP-статуса 201",
-                    () -> api.registration.registerUser(td.username, td.password)
-            );
+            RegistrationBodyModel body = new RegistrationBodyModel(td.username, td.password);
+            SuccessfulRegistrationResponseModel response = api.registration.registerUser(body);
 
             step("Проверка бизнес-логики: валидация данных зарегистрированного пользователя", () -> {
                 assertThat(response.username()).isEqualTo(td.username);
@@ -34,19 +31,14 @@ public class RegistrationTests extends TestBase {
         @Test
         public void existingUserWrongRegistrationTest() {
 
-            SuccessfulRegistrationResponseModel firstResponse = step(
-                    "Отправка POST-запроса на /users/register/ (первая регистрация) и проверка HTTP-статуса 201",
-                    () -> api.registration.registerUser(td.username, td.password)
-            );
+            RegistrationBodyModel body = new RegistrationBodyModel(td.username, td.password);
+            SuccessfulRegistrationResponseModel firstResponse = api.registration.registerUser(body);
 
             step("Проверка бизнес-логики: валидация username после первой регистрации", () -> {
                 assertThat(firstResponse.username()).isEqualTo(td.username);
             });
 
-            ExistingUserResponseRecordsModel secondResponse = step(
-                    "Отправка POST-запроса на /users/register/ (повторная) и проверка HTTP-статуса 400",
-                    () -> api.registration.registerExistingUser(td.username, td.password)
-            );
+            ExistingUserResponseRecordsModel secondResponse = api.registration.registerExistingUser(body);
 
             step("Проверка бизнес-логики: валидация ошибки повторной регистрации", () -> {
                 assertThat(secondResponse.username().get(0)).isEqualTo(EXPECTED_ERROR_EXISTING_USER);
@@ -57,10 +49,8 @@ public class RegistrationTests extends TestBase {
         @Test
         public void emptyUsernameRegistrationTest() {
 
-        EmptyUsernameResponseModel response = step(
-                "Отправка POST-запроса на /users/register/ с пустым логином и проверка HTTP-статуса 400",
-                () -> api.registration.registerWithEmptyUsername(td.password)
-        );
+            RegistrationBodyModel body = new RegistrationBodyModel("", td.password);
+            EmptyUsernameResponseModel response = api.registration.registerWithEmptyUsername(body);
 
         step("Проверка бизнес-логики: валидация ошибки пустого логина", () -> {
             assertThat(response.username().get(0)).isEqualTo(EXPECTED_ERROR_NOT_BE_BLANK);
@@ -71,10 +61,8 @@ public class RegistrationTests extends TestBase {
     @Test
     public void emptyPasswordRegistrationTest() {
 
-        EmptyPasswordResponseModel response = step(
-                "Отправка POST-запроса на /users/register/ с пустым паролем и проверка HTTP-статуса 400",
-                () -> api.registration.registerWithEmptyPassword(td.username)
-        );
+        RegistrationBodyModel body = new RegistrationBodyModel(td.username, "");
+        EmptyPasswordResponseModel response = api.registration.registerWithEmptyPassword(body);
 
         step("Проверка бизнес-логики: валидация ошибки пустого пароля", () -> {
             assertThat(response.password().get(0)).isEqualTo(EXPECTED_ERROR_NOT_BE_BLANK);
@@ -85,10 +73,8 @@ public class RegistrationTests extends TestBase {
     @Test
     public void wrongUsernameRegistrationTest() {
 
-        WrongUsernameResponseModel response = step(
-                "Отправка POST-запроса на /users/register/ с некорректным логином и проверка HTTP-статуса 400",
-                () -> api.registration.registerWithWrongUsername(td.wrongUsername, td.password)
-        );
+        RegistrationBodyModel body = new RegistrationBodyModel(td.wrongUsername, td.password);
+        WrongUsernameResponseModel response = api.registration.registerWithWrongUsername(body);
 
         step("Проверка бизнес-логики: валидация ошибки некорректного логина", () -> {
             assertThat(response.username().get(0)).isEqualTo(EXPECTED_ERROR_INVALID_USERNAME_CHARACTERS);
@@ -99,10 +85,8 @@ public class RegistrationTests extends TestBase {
     @Test
     public void unsupportedMediaTypeRegistrationTest() {
 
-        UnsupportedMediaTypeRegistrationBodyModel response = step(
-                "Отправка POST-запроса на /users/register/ с неверным Content-Type и проверка HTTP-статуса 415",
-                () -> api.registration.registerWithUnsupportedMediaType(td.username, td.password)
-        );
+        RegistrationBodyModel body = new RegistrationBodyModel(td.username, td.password);
+        UnsupportedMediaTypeRegistrationBodyModel response = api.registration.registerWithUnsupportedMediaType(body);
 
         step("Проверка бизнес-логики: валидация ошибки неверного Content-Type", () -> {
             assertThat(response.detail()).isEqualTo(EXPECTED_ERROR_UNSUPPORTED_MEDIA_TYPE);

@@ -1,73 +1,61 @@
 package apiClients.users;
 
+import io.qameta.allure.Step;
 import models.update_user.*;
 import static io.restassured.RestAssured.given;
 import static specs.user.UpdateUserSpec.*;
 
 public class UpdateUserApiClient {
 
-        public SuccessfulUpdateUserPutResponseModel updateUserWithPut(String accessToken,
-                                                                      String username,
-                                                                      String firstName,
-                                                                      String lastName,
-                                                                      String email) {
-            UpdateUserBodyModel body = new UpdateUserBodyModel(username, firstName, lastName, email);
+    @Step("Отправка PUT-запроса на /users/me/ и проверка HTTP-статуса 200")
+    public SuccessfulUpdateUserPutResponseModel updateUserWithPut(String accessToken, UpdateUserBodyModel body) {
+        return given(updateUserRequestSpec)
+                .header("Authorization", "Bearer " + accessToken)
+                .body(body)
+                .when()
+                .put("/users/me/")
+                .then()
+                .spec(successfulUpdateUserResponseSpec)
+                .extract()
+                .as(SuccessfulUpdateUserPutResponseModel.class);
+    }
 
-            return given(updateUserRequestSpec)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .body(body)
-                    .when()
-                    .put("/users/me/")
-                    .then()
-                    .spec(successfulUpdateUserResponseSpec)
-                    .extract()
-                    .as(SuccessfulUpdateUserPutResponseModel.class);
-        }
+    @Step("Отправка PATCH-запроса на /users/me/ и проверка HTTP-статуса 200")
+    public SuccessfulUpdateUserPatchResponseModel updateUserWithPatch(String accessToken, UpdateUserBodyModel body) {
+        return given(updateUserRequestSpec)
+                .header("Authorization", "Bearer " + accessToken)
+                .body(body)
+                .when()
+                .patch("/users/me/")
+                .then()
+                .spec(successfulUpdateUserResponseSpec)
+                .extract()
+                .as(SuccessfulUpdateUserPatchResponseModel.class);
+    }
 
-        public SuccessfulUpdateUserPatchResponseModel updateUserWithPatch(String accessToken,
-                                                                          String username,
-                                                                          String firstName,
-                                                                          String lastName,
-                                                                          String email) {
-            UpdateUserBodyModel body = new UpdateUserBodyModel(username, firstName, lastName, email);
+    @Step("Отправка PATCH-запроса на /users/me/ с частичным обновлением и проверка HTTP-статуса 200")
+    public SuccessfulUpdateUserPatchResponseModel partialUpdateUser(String accessToken, PartialUpdateUserBodyModel body) {
+        return given(updateUserRequestSpec)
+                .header("Authorization", "Bearer " + accessToken)
+                .body(body)
+                .when()
+                .patch("/users/me/")
+                .then()
+                .spec(successfulUpdateUserResponseSpec)
+                .extract()
+                .as(SuccessfulUpdateUserPatchResponseModel.class);
+    }
 
-            return given(updateUserRequestSpec)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .body(body)
-                    .when()
-                    .patch("/users/me/")
-                    .then()
-                    .spec(successfulUpdateUserResponseSpec)
-                    .extract()
-                    .as(SuccessfulUpdateUserPatchResponseModel.class);
-        }
-
-        public SuccessfulUpdateUserPatchResponseModel partialUpdateUser(String accessToken, String username) {
-            PartialUpdateUserBodyModel body = new PartialUpdateUserBodyModel(username);
-
-            return given(updateUserRequestSpec)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .body(body)
-                    .when()
-                    .patch("/users/me/")
-                    .then()
-                    .spec(successfulUpdateUserResponseSpec)
-                    .extract()
-                    .as(SuccessfulUpdateUserPatchResponseModel.class);
-        }
-
-
-        public InvalidPartialUpdateUserResponseBodyModel partialUpdateWithPut(String accessToken, String username) {
-            PartialUpdateUserBodyModel body = new PartialUpdateUserBodyModel(username);
-
-            return given(updateUserRequestSpec)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .body(body)
-                    .when()
-                    .put("/users/me/")
-                    .then()
-                    .spec(invalidPartialUpdateUserResponseSpec)
-                    .extract()
-                    .as(InvalidPartialUpdateUserResponseBodyModel.class);
-        }
+    @Step("Отправка PUT-запроса на /users/me/ с неполными данными и проверка HTTP-статуса 400")
+    public InvalidPartialUpdateUserResponseBodyModel partialUpdateWithPut(String accessToken, PartialUpdateUserBodyModel body) {
+        return given(updateUserRequestSpec)
+                .header("Authorization", "Bearer " + accessToken)
+                .body(body)
+                .when()
+                .put("/users/me/")
+                .then()
+                .spec(invalidPartialUpdateUserResponseSpec)
+                .extract()
+                .as(InvalidPartialUpdateUserResponseBodyModel.class);
+    }
 }

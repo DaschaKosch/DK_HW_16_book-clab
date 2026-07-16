@@ -1,5 +1,6 @@
 package apiClients.auth;
 
+import io.qameta.allure.Step;
 import models.logout.EmptyRefreshTokenLogoutBodyModel;
 import models.logout.EmptyRefreshTokenLogoutResponseModel;
 import models.logout.LogoutBodyModel;
@@ -10,9 +11,8 @@ import static specs.logout.LogoutSpec.*;
 public class LogoutApiClient {
 
 
-    public void logout(String refreshToken) {
-        LogoutBodyModel body = new LogoutBodyModel(refreshToken);
-
+    @Step("Отправка POST-запроса на /auth/logout/ и проверка HTTP-статуса 200")
+    public void logout(LogoutBodyModel body) {
         given(logoutRequestSpec)
                 .body(body)
                 .when()
@@ -21,9 +21,8 @@ public class LogoutApiClient {
                 .spec(successfulLogoutResponseSpec);
     }
 
-    public ReusedRefreshTokenLogoutResponseModel logoutWithReusedToken(String refreshToken) {
-        LogoutBodyModel body = new LogoutBodyModel(refreshToken);
-
+    @Step("Отправка POST-запроса на /auth/logout/ с повторным токеном и проверка HTTP-статуса 401")
+    public ReusedRefreshTokenLogoutResponseModel logoutWithReusedToken(LogoutBodyModel body) {
         return given(logoutRequestSpec)
                 .body(body)
                 .when()
@@ -34,9 +33,8 @@ public class LogoutApiClient {
                 .as(ReusedRefreshTokenLogoutResponseModel.class);
     }
 
-    public EmptyRefreshTokenLogoutResponseModel logoutWithoutToken() {
-        EmptyRefreshTokenLogoutBodyModel body = new EmptyRefreshTokenLogoutBodyModel();
-
+    @Step("Отправка POST-запроса на /auth/logout/ без токена и проверка HTTP-статуса 400")
+    public EmptyRefreshTokenLogoutResponseModel logoutWithoutToken(EmptyRefreshTokenLogoutBodyModel body) {
         return given(logoutRequestSpec)
                 .body(body)
                 .when()
@@ -47,9 +45,8 @@ public class LogoutApiClient {
                 .as(EmptyRefreshTokenLogoutResponseModel.class);
     }
 
-    public ReusedRefreshTokenLogoutResponseModel logoutWithAccessToken(String accessToken) {
-        LogoutBodyModel body = new LogoutBodyModel(accessToken);
-
+    @Step("Отправка POST-запроса на /auth/logout/ с access-токеном и проверка HTTP-статуса 401")
+    public ReusedRefreshTokenLogoutResponseModel logoutWithAccessToken(LogoutBodyModel body) {
         return given(logoutRequestSpec)
                 .body(body)
                 .when()

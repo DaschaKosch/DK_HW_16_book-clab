@@ -7,6 +7,7 @@ import static io.restassured.RestAssured.given;
 import static specs.club.ClubSpec.*;
 
 public class ClubApiClient {
+
     @Step("Отправка POST-запроса на /clubs/ и проверка HTTP-статуса 201")
     public ClubResponseModel createClub(ClubRequestModel body, String token) {
         return given(clubRequestSpec)
@@ -20,7 +21,7 @@ public class ClubApiClient {
                 .as(ClubResponseModel.class);
     }
 
-    @Step("Получение информации о клубе")
+    @Step("Отправка GET-запроса на /clubs/{id}/ и проверка HTTP-статуса 200")
     public ClubResponseModel getClubById(int clubId, String token) {
         return given(clubRequestSpec)
                 .auth().oauth2(token)
@@ -31,7 +32,8 @@ public class ClubApiClient {
                 .extract()
                 .as(ClubResponseModel.class);
     }
-    @Step("Полное обновление клуба: отправка PUT-запроса на /clubs/{id}/ и проверка HTTP-статуса 200")
+
+    @Step("Отправка PUT-запроса на /clubs/{id}/ и проверка HTTP-статуса 200")
     public ClubResponseModel updateClub(int clubId, ClubRequestModel body, String token) {
         return given(clubRequestSpec)
                 .body(body)
@@ -42,9 +44,9 @@ public class ClubApiClient {
                 .spec(successfulUpdateClubResponseSpec)
                 .extract()
                 .as(ClubResponseModel.class);
-
     }
-    @Step("Удаление клуба: отправка DELETE-запроса на /clubs/{id}/ и проверка HTTP-статуса 204")
+
+    @Step("Отправка DELETE-запроса на /clubs/{id}/ и проверка HTTP-статуса 204")
     public void deleteClub(int clubId, String token) {
         given(clubRequestSpec)
                 .auth().oauth2(token)

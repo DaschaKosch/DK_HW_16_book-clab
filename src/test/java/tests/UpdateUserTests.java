@@ -1,5 +1,7 @@
 package tests;
 
+import models.login.LoginBodyRecordsModel;
+import models.registration.RegistrationBodyModel;
 import models.update_user.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,16 +18,17 @@ public class UpdateUserTests extends TestBase {
     @Test
     public void successfulPutUpdateUserTest() {
 
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
 
-        String accessToken = step("Регистрация и авторизация пользователя",
-                () -> api.login.registerAndLogin(td.username, td.password)
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String accessToken = api.login.login(loginBody).access();
+
+        UpdateUserBodyModel body = new UpdateUserBodyModel(
+                td.username, td.firstName, td.lastName, td.email
         );
 
-        SuccessfulUpdateUserPutResponseModel response = step(
-                "Отправка PUT-запроса на /users/me/ и проверка HTTP-статуса 200",
-                () -> api.updateUser.updateUserWithPut(
-                        accessToken, td.username, td.firstName, td.lastName, td.email)
-        );
+        SuccessfulUpdateUserPutResponseModel response = api.updateUser.updateUserWithPut(accessToken, body);
 
         step("Проверка бизнес-логики: валидация обновленных данных пользователя", () -> {
             assertThat(response.id()).isPositive();
@@ -41,15 +44,17 @@ public class UpdateUserTests extends TestBase {
     @Test
     public void successfulPatchUpdateUserTest() {
 
-        String accessToken = step("Регистрация и авторизация пользователя",
-                () -> api.login.registerAndLogin(td.username, td.password)
-        );
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
 
-        SuccessfulUpdateUserPatchResponseModel response = step(
-                "Отправка PATCH-запроса на /users/me/ и проверка HTTP-статуса 200",
-                () -> api.updateUser.updateUserWithPatch(
-                        accessToken, td.username, td.firstName, td.lastName, td.email)
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String accessToken = api.login.login(loginBody).access();
+
+        UpdateUserBodyModel body = new UpdateUserBodyModel(
+                td.username, td.firstName, td.lastName, td.email
         );
+        SuccessfulUpdateUserPatchResponseModel response = api.updateUser.updateUserWithPatch(accessToken, body);
+
 
         step("Проверка бизнес-логики: валидация обновленных данных пользователя", () -> {
             assertThat(response.id()).isPositive();
@@ -64,14 +69,13 @@ public class UpdateUserTests extends TestBase {
     @Test
     public void successfulPartialPatchUpdateUserTest() {
 
-        String accessToken = step("Регистрация и авторизация пользователя",
-                () -> api.login.registerAndLogin(td.username, td.password)
-        );
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String accessToken = api.login.login(loginBody).access();
+        PartialUpdateUserBodyModel body = new PartialUpdateUserBodyModel(td.username);
+        SuccessfulUpdateUserPatchResponseModel response = api.updateUser.partialUpdateUser(accessToken, body);
 
-        SuccessfulUpdateUserPatchResponseModel response = step(
-                "Отправка PATCH-запроса с частичным обновлением и проверка HTTP-статуса 200",
-                () -> api.updateUser.partialUpdateUser(accessToken, td.username)
-        );
 
         step("Проверка бизнес-логики: валидация частичного обновления данных", () -> {
             assertThat(response.id()).isPositive();
@@ -83,14 +87,16 @@ public class UpdateUserTests extends TestBase {
     @Test
     public void partialPutUpdateUserTest() {
 
-        String accessToken = step("Регистрация и авторизация пользователя",
-                () -> api.login.registerAndLogin(td.username, td.password)
-        );
+        RegistrationBodyModel regBody = new RegistrationBodyModel(td.username, td.password);
+        api.registration.registerUser(regBody);
 
-        InvalidPartialUpdateUserResponseBodyModel response = step(
-                "Отправка PUT-запроса с неполными данными и проверка HTTP-статуса 400",
-                () -> api.updateUser.partialUpdateWithPut(accessToken, td.username)
-        );
+        LoginBodyRecordsModel loginBody = new LoginBodyRecordsModel(td.username, td.password);
+        String accessToken = api.login.login(loginBody).access();
+
+        PartialUpdateUserBodyModel body = new PartialUpdateUserBodyModel(td.username);
+
+        InvalidPartialUpdateUserResponseBodyModel response = api.updateUser.partialUpdateWithPut(accessToken, body);
+
 
         step("Проверка бизнес-логики: валидация текста ошибок валидации полей", () -> {
             assertThat(response.firstName().get(0)).isEqualTo(EXPECTED_REQUIRED_FIELD);
